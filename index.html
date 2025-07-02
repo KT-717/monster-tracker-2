@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>怪物復活追蹤</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon-192.png" />
+  <style>
+    body { font-family: sans-serif; margin: 10px; }
+    h1 { text-align: center; }
+    .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1em; justify-content: center; }
+    .monster-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; }
+    .monster-card { border: 1px solid #ccc; border-radius: 10px; padding: 10px; background: #f9f9f9; }
+    .log-item { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; padding: 5px; border-bottom: 1px solid #ddd; }
+    .alarm { color: red; font-weight: bold; margin-left: 5px; }
+    button { cursor: pointer; }
+    .countdown { margin-left: 10px; color: #555; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>怪物復活追蹤</h1>
+
+  <div class="controls">
+    <button onclick="exportJSON()">匯出 JSON</button>
+    <button onclick="exportExcel()">匯出 Excel</button>
+    <input type="file" id="importFile" accept=".json, .xlsx" onchange="handleImport(event)">
+    <button onclick="syncToCloud()">同步到雲端</button>
+    <button onclick="loadFromCloud()">從雲端載入</button>
+  </div>
+
+  <div class="monster-grid" id="monsterGrid"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js">
+
+function syncToCloud() {
+  fetch("https://script.google.com/macros/s/AKfycby3mYDtBDlL8ip0NzNA2B2sxRNbFhsBw4f2oFGkldMwG--51DEd-B81II384jl_rqOc/exec", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(logs)
+  })
+  .then(res => res.text())
+  .then(txt => alert("✅ 同步成功：" + txt))
+  .catch(err => alert("❌ 同步失敗：" + err));
+}
+
+function loadFromCloud() {
+  fetch("https://script.google.com/macros/s/AKfycby3mYDtBDlL8ip0NzNA2B2sxRNbFhsBw4f2oFGkldMwG--51DEd-B81II384jl_rqOc/exec")
+    .then(res => res.json())
+    .then(data => {
+      logs = data;
+      saveLogs();
+      alert("✅ 從雲端載入成功");
+    })
+    .catch(err => alert("❌ 載入失敗：" + err));
+}
+
+</script>
+  <script>
+    const monsterData = [
+      { name: "葛雷金剛", minutes: [270, 350] },
+      { name: "九尾妖狐", minutes: [210, 570] },
+      { name: "巴洛古", minutes: [405, 540] },
+      { name: "艾利傑", minutes: [118, 128] },
+      { name: "黑輪王map_7", minutes: [780, 1020] },
+      { name: "黑輪王map_7-1", minutes: [780, 1020] },
+      { name: "雪毛怪人", minutes: [45, 68] },
+      { name: "厄運死神", minutes: [45, 105] },
+    ];
+
+    let logs = JSON.parse(localStorage.getItem("logs") || "[]");
+
+    function saveLogs() {
+      localStorage.setItem("logs", JSON.stringify(logs));
+      renderLogs();
+    }
+
+    function addLog(monster, channel) {
+      const now = new Date();
+      const existing = logs.find(l => l.monster === monster && l.channel === channel);
+      if (existing) return;
+      logs.push({ monster, channel: String(channel).trim(), timestamp: now.toISOString() });
+      saveLogs();
+    }
+
+    function deleteLog(index) {
+      logs.splice(index, 1);
+      saveLogs();
+    }
+
+    function renderLogs() {
+      document.getElementById("monsterGrid").innerHTML = monsterData.map(mon => {
+        const displayName = `${mon.name}（${mon.minutes[0]}-${mon.minutes[1]}分）`;
+        const entries = logs
+          .map((log, i) => ({ ...log, i }))
+          .filter(l => l.monster === mon.name)
+          .map(l => {
+            const dt = new Date(l.timestamp);
+            const revive = new Date(dt.getTime() + mon.minutes[0] * 60000);
+            const timeStr = revive.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const alarm = (revive - Date.now()) < 10 * 60 * 1000 ? '⏰' : '';
+            const countdown = `<span class="countdown">(<span id="cd-${l.i}"></span>)</span>`;
+            return `<div class="log-item">
+              <span>${alarm} ${timeStr} | ${l.channel} ${countdown}</span>
+              <button onclick="deleteLog(${l.i})">❌</button>
+            </div>`;
+          }).join("");
+
+        return `<div class="monster-card">
+          <div><strong>${displayName}</strong></div>
+          <div>
+            頻道：<input id="ch-${mon.name}" placeholder="ex. CH1" />
+            <button onclick="addLog('${mon.name}', document.getElementById('ch-${mon.name}').value)">登記</button>
+          </div>
+          ${entries}
+        </div>`;
+      }).join("");
+
+      updateCountdowns();
+    }
+
+    function updateCountdowns() {
+      logs.forEach((log, i) => {
+        const mon = monsterData.find(m => m.name === log.monster);
+        if (!mon) return;
+        const dt = new Date(log.timestamp);
+        const revive = new Date(dt.getTime() + mon.minutes[0] * 60000);
+        const msLeft = revive - Date.now();
+        const cdElem = document.getElementById(`cd-${i}`);
+        if (cdElem) {
+          if (msLeft <= 0) {
+            cdElem.textContent = "已復活";
+          } else {
+            const min = Math.floor(msLeft / 60000);
+            const sec = Math.floor((msLeft % 60000) / 1000);
+            cdElem.textContent = `${min}分${sec}秒`;
+          }
+        }
+      });
+      setTimeout(updateCountdowns, 1000);
+    }
+
+    function exportJSON() {
+      const blob = new Blob([JSON.stringify(logs, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "monster_logs.json";
+      a.click();
+    }
+
+    function exportExcel() {
+      const ws = XLSX.utils.json_to_sheet(logs);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Logs");
+      XLSX.writeFile(wb, "monster_logs.xlsx");
+    }
+
+    function handleImport(e) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        let newLogs = [];
+        if (file.name.endsWith(".json")) {
+          newLogs = JSON.parse(evt.target.result);
+        } else {
+          const wb = XLSX.read(evt.target.result, { type: "binary" });
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          newLogs = XLSX.utils.sheet_to_json(sheet);
+        }
+        const exists = new Set(logs.map(l => l.monster + l.channel + l.timestamp));
+        newLogs.forEach(l => {
+          const key = l.monster + l.channel + l.timestamp;
+          if (!exists.has(key)) logs.push(l);
+        });
+        saveLogs();
+      };
+      if (file.name.endsWith(".json")) {
+        reader.readAsText(file);
+      } else {
+        reader.readAsBinaryString(file);
+      }
+    }
+
+    const SHEET_URL = "https://script.google.com/macros/s/AKfycby3mYDtBDlL8ip0NzNA2B2sxRNbFhsBw4f2oFGkldMwG--51DEd-B81II384jl_rqOc/exec";
+
+
+    function syncToCloud() {
+      if (!logs.length) {
+        alert("⚠ 沒有任何資料可同步");
+        return;
+      }
+      fetch(SHEET_URL, {
+        method: "POST",
+        body: JSON.stringify(logs),
+        headers: { "Content-Type": "application/json" }
+      }).then(r => r.text()).then(t => {
+        alert("✅ 雲端回應：" + t);
+      }).catch(err => {
+        alert("❌ 雲端同步失敗：" + err.message);
+      });
+    }
+
+    function loadFromCloud() {
+      fetch(SHEET_URL)
+        .then(r => r.json())
+        .then(res => {
+          if (res.status === 'ok' && Array.isArray(res.data)) {
+            const exists = new Set(logs.map(l => l.monster + l.channel + l.timestamp));
+            res.data.forEach(l => {
+              const key = l.monster + l.channel + l.timestamp;
+              if (!exists.has(key)) logs.push(l);
+            });
+            saveLogs();
+            alert("✅ 雲端資料載入成功");
+          } else {
+            alert("⚠ 雲端資料格式錯誤");
+          }
+        })
+        .catch(err => {
+          console.error("雲端載入失敗:", err);
+          alert("❌ 讀取資料失敗");
+        });
+    }
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+
+    renderLogs();
+    loadFromCloud();
+  </script>
+</body>
+</html>
