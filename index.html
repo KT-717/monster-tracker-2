@@ -194,7 +194,7 @@ function loadFromCloud() {
       fetch(SHEET_URL, {
         method: "POST",
         body: JSON.stringify(logs),
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "text/plain;charset=utf-8" }
       }).then(r => r.text()).then(t => {
         alert("✅ 雲端回應：" + t);
       }).catch(err => {
