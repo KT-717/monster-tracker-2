@@ -1,23 +1,70 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>怪物復活追蹤</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon-192.png" />
   <style>
-    body { font-family: sans-serif; margin: 10px; }
-    h1 { text-align: center; }
-    .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1em; justify-content: center; }
-    .monster-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; }
-    .monster-card { border: 1px solid #ccc; border-radius: 10px; padding: 10px; background: #f9f9f9; }
-    .log-item { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; padding: 5px; border-bottom: 1px solid #ddd; }
-    .alarm { color: red; font-weight: bold; margin-left: 5px; }
-    button { cursor: pointer; }
-    .countdown { margin-left: 10px; color: #555; font-size: 0.9em; }
+    body {
+      font-family: sans-serif;
+      margin: 10px;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 1em;
+      justify-content: center;
+    }
+
+    .monster-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 10px;
+    }
+
+    .monster-card {
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 10px;
+      background: #f9f9f9;
+    }
+
+    .log-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 5px;
+      padding: 5px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .alarm {
+      color: red;
+      font-weight: bold;
+      margin-left: 5px;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .countdown {
+      margin-left: 10px;
+      color: #555;
+      font-size: 0.9em;
+    }
   </style>
 </head>
+
 <body>
   <h1>怪物復活追蹤</h1>
 
@@ -33,31 +80,31 @@
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js">
 
-function syncToCloud() {
-  fetch("https://script.google.com/macros/s/AKfycby3mYDtBDlL8ip0NzNA2B2sxRNbFhsBw4f2oFGkldMwG--51DEd-B81II384jl_rqOc/exec", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(logs)
-  })
-  .then(res => res.text())
-  .then(txt => alert("✅ 同步成功：" + txt))
-  .catch(err => alert("❌ 同步失敗：" + err));
-}
+    function syncToCloud() {
+      fetch("https://script.google.com/macros/s/AKfycby3mYDtBDlL8ip0NzNA2B2sxRNbFhsBw4f2oFGkldMwG--51DEd-B81II384jl_rqOc/exec", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(logs)
+      })
+        .then(res => res.text())
+        .then(txt => alert("✅ 同步成功：" + txt))
+        .catch(err => alert("❌ 同步失敗：" + err));
+    }
 
-function loadFromCloud() {
-  fetch("https://script.google.com/macros/s/AKfycby3mYDtBDlL8ip0NzNA2B2sxRNbFhsBw4f2oFGkldMwG--51DEd-B81II384jl_rqOc/exec")
-    .then(res => res.json())
-    .then(data => {
-      logs = data;
-      saveLogs();
-      alert("✅ 從雲端載入成功");
-    })
-    .catch(err => alert("❌ 載入失敗：" + err));
-}
+    function loadFromCloud() {
+      fetch("https://script.google.com/macros/s/AKfycby3mYDtBDlL8ip0NzNA2B2sxRNbFhsBw4f2oFGkldMwG--51DEd-B81II384jl_rqOc/exec")
+        .then(res => res.json())
+        .then(data => {
+          logs = data;
+          saveLogs();
+          alert("✅ 從雲端載入成功");
+        })
+        .catch(err => alert("❌ 載入失敗：" + err));
+    }
 
-</script>
+  </script>
   <script>
     const monsterData = [
       { name: "葛雷金剛", minutes: [270, 350] },
@@ -71,7 +118,7 @@ function loadFromCloud() {
       { name: "紅寶王", minutes: [23, 30] },
       { name: "樹妖王", minutes: [23, 30] },
       { name: "殭屍猴王", minutes: [38, 45] },
-      { name: "地鐵幽靈", minutes: [45, 60] },
+      { name: "冥界幽靈", minutes: [45, 60] },
       { name: "沼澤巨鱷", minutes: [90, 105] },
       { name: "蘑菇王", minutes: [210, 240] },
       { name: "殭屍蘑菇王", minutes: [195, 225] },
@@ -79,10 +126,10 @@ function loadFromCloud() {
       { name: "咕咕鐘", minutes: [68, 90] },
       { name: "仙人娃娃", minutes: [158, 180] },
       { name: "喵怪仙人", minutes: [150, 170] },
-      { name: "書生", minutes: [150, 300] },
-      { name: "巨大深山人參", minutes: [60, 135] },
+      { name: "書生幽靈", minutes: [150, 300] },
+      { name: "巨大深山人蔘", minutes: [60, 135] },
       { name: "雪山魔女", minutes: [158, 180] },
-      { name: "肯的熊", minutes: [113, 128] },
+      { name: "肯德熊", minutes: [113, 128] },
     ];
 
     let logs = JSON.parse(localStorage.getItem("logs") || "[]");
@@ -107,7 +154,9 @@ function loadFromCloud() {
 
     function renderLogs() {
       document.getElementById("monsterGrid").innerHTML = monsterData.map(mon => {
-        const displayName = `${mon.name}（${mon.minutes[0]}-${mon.minutes[1]}分）`;
+        const imagePath = `images/${mon.name}.png`; // 根據怪物名稱推圖片路徑
+        const displayName = `<img src="${imagePath}" alt="${mon.name}" style="width:50px; height:50px; vertical-align:middle; margin-right:5px;">${mon.name}（${mon.minutes[0]}-${mon.minutes[1]}分）`;
+
         const entries = logs
           .map((log, i) => ({ ...log, i }))
           .filter(l => l.monster === mon.name)
@@ -118,23 +167,24 @@ function loadFromCloud() {
             const alarm = (revive - Date.now()) < 10 * 60 * 1000 ? '⏰' : '';
             const countdown = `<span class="countdown">(<span id="cd-${l.i}"></span>)</span>`;
             return `<div class="log-item">
-              <span>${alarm} ${timeStr} | ${l.channel} ${countdown}</span>
-              <button onclick="deleteLog(${l.i})">❌</button>
-            </div>`;
+            <span>${alarm} ${timeStr} | ${l.channel} ${countdown}</span>
+            <button onclick="deleteLog(${l.i})">❌</button>
+          </div>`;
           }).join("");
 
         return `<div class="monster-card">
-          <div><strong>${displayName}</strong></div>
-          <div>
-            頻道：<input id="ch-${mon.name}" placeholder="ex. CH1" />
-            <button onclick="addLog('${mon.name}', document.getElementById('ch-${mon.name}').value)">登記</button>
-          </div>
-          ${entries}
-        </div>`;
+        <div><strong>${displayName}</strong></div>
+        <div>
+          頻道：<input id="ch-${mon.name}" placeholder="ex. CH1" />
+          <button onclick="addLog('${mon.name}', document.getElementById('ch-${mon.name}').value)">登記</button>
+        </div>
+        ${entries}
+      </div>`;
       }).join("");
 
       updateCountdowns();
     }
+
 
     function updateCountdowns() {
       logs.forEach((log, i) => {
@@ -175,7 +225,7 @@ function loadFromCloud() {
     function handleImport(e) {
       const file = e.target.files[0];
       const reader = new FileReader();
-      reader.onload = function(evt) {
+      reader.onload = function (evt) {
         let newLogs = [];
         if (file.name.endsWith(".json")) {
           newLogs = JSON.parse(evt.target.result);
@@ -243,25 +293,9 @@ function loadFromCloud() {
       navigator.serviceWorker.register('sw.js');
     }
 
-        renderLogs();
+    renderLogs();
     loadFromCloud();
-
-    // ✅ 自動偵測新版並重新載入
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').then(reg => {
-        reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              console.log("🔄 偵測到新版本，自動重新整理");
-              window.location.reload();
-            }
-          });
-        });
-      });
-    }
-
-	
   </script>
 </body>
+
 </html>
