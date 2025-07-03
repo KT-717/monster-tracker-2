@@ -243,8 +243,25 @@ function loadFromCloud() {
       navigator.serviceWorker.register('sw.js');
     }
 
-    renderLogs();
+        renderLogs();
     loadFromCloud();
+
+    // ✅ 自動偵測新版並重新載入
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').then(reg => {
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              console.log("🔄 偵測到新版本，自動重新整理");
+              window.location.reload();
+            }
+          });
+        });
+      });
+    }
+
+	
   </script>
 </body>
 </html>
