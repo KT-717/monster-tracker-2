@@ -1,4 +1,4 @@
-const CACHE_NAME = 'monster-tracker-cache-v3'; // 每次改版請遞增版本號
+const CACHE_NAME = 'monster-tracker-cache-v4'; // 每次改版請遞增版本號
 const urlsToCache = [
   './',
   './index.html',
