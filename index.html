@@ -91,6 +91,8 @@
         .then(res => res.text())
         .then(txt => alert("✅ 同步成功：" + txt))
         .catch(err => alert("❌ 同步失敗：" + err));
+		
+		loadFromCloud();
     }
 
     function loadFromCloud() {
@@ -107,6 +109,7 @@
   </script>
   <script>
     const monsterData = [
+	  { name: "瘋狂喵z客", minutes: [120, 360] },
       { name: "葛雷金剛", minutes: [270, 350] },
       { name: "九尾妖狐", minutes: [210, 570] },
       { name: "巴洛古", minutes: [405, 540] },
@@ -153,59 +156,84 @@
     }
 
     function renderLogs() {
-      document.getElementById("monsterGrid").innerHTML = monsterData.map(mon => {
-        const imagePath = `images/${mon.name}.png`; // 根據怪物名稱推圖片路徑
-        const displayName = `<img src="${imagePath}" alt="${mon.name}" style="width:50px; height:50px; vertical-align:middle; margin-right:5px;">${mon.name}（${mon.minutes[0]}-${mon.minutes[1]}分）`;
+		document.getElementById("monsterGrid").innerHTML = monsterData.map(mon => {
+			const imagePath = `images/${mon.name}.png`;
+			const displayName = `<img src="${imagePath}" alt="${mon.name}" style="width:50px; height:50px; vertical-align:middle; margin-right:5px;">${mon.name}（${mon.minutes[0]}-${mon.minutes[1]}分）`;
+		
+			const entries = logs
+			.map((log, i) => ({ ...log, i }))
+			.filter(l => l.monster === mon.name)
+			.map(l => {
+				const dt = new Date(l.timestamp);
+				const reviveMin = new Date(dt.getTime() + mon.minutes[0] * 60000);
+				const reviveMax = new Date(dt.getTime() + mon.minutes[1] * 60000);
+				const timeStr = reviveMin.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+				const alarm = (reviveMin - Date.now()) < 10 * 60 * 1000 ? '⏰' : '';
+				const countdown = `
+				<span class="countdown">
+					(<span id="cd-min-${l.i}"></span>) / (<span id="cd-max-${l.i}"></span>)
+				</span>`;
+		
+				return `<div class="log-item">
+				<span>${alarm} ${timeStr} | ${l.channel} ${countdown}</span>
+				<button onclick="deleteLog(${l.i})">❌</button>
+				</div>`;
+			}).join("");
+		
+			return `<div class="monster-card">
+			<div><strong>${displayName}</strong></div>
+			<div>
+				頻道：<input id="ch-${mon.name}" placeholder="ex. CH1" />
+				<button onclick="addLog('${mon.name}', document.getElementById('ch-${mon.name}').value)">登記</button>
+			</div>
+			${entries}
+			</div>`;
+		}).join("");
+		
+		updateCountdowns();
+	}
 
-        const entries = logs
-          .map((log, i) => ({ ...log, i }))
-          .filter(l => l.monster === mon.name)
-          .map(l => {
-            const dt = new Date(l.timestamp);
-            const revive = new Date(dt.getTime() + mon.minutes[0] * 60000);
-            const timeStr = revive.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const alarm = (revive - Date.now()) < 10 * 60 * 1000 ? '⏰' : '';
-            const countdown = `<span class="countdown">(<span id="cd-${l.i}"></span>)</span>`;
-            return `<div class="log-item">
-            <span>${alarm} ${timeStr} | ${l.channel} ${countdown}</span>
-            <button onclick="deleteLog(${l.i})">❌</button>
-          </div>`;
-          }).join("");
-
-        return `<div class="monster-card">
-        <div><strong>${displayName}</strong></div>
-        <div>
-          頻道：<input id="ch-${mon.name}" placeholder="ex. CH1" />
-          <button onclick="addLog('${mon.name}', document.getElementById('ch-${mon.name}').value)">登記</button>
-        </div>
-        ${entries}
-      </div>`;
-      }).join("");
-
-      updateCountdowns();
-    }
 
 
     function updateCountdowns() {
-      logs.forEach((log, i) => {
-        const mon = monsterData.find(m => m.name === log.monster);
-        if (!mon) return;
-        const dt = new Date(log.timestamp);
-        const revive = new Date(dt.getTime() + mon.minutes[0] * 60000);
-        const msLeft = revive - Date.now();
-        const cdElem = document.getElementById(`cd-${i}`);
-        if (cdElem) {
-          if (msLeft <= 0) {
-            cdElem.textContent = "已復活";
-          } else {
-            const min = Math.floor(msLeft / 60000);
-            const sec = Math.floor((msLeft % 60000) / 1000);
-            cdElem.textContent = `${min}分${sec}秒`;
-          }
-        }
-      });
-      setTimeout(updateCountdowns, 1000);
-    }
+		logs.forEach((log, i) => {
+		const mon = monsterData.find(m => m.name === log.monster);
+		if (!mon) return;
+	
+		const dt = new Date(log.timestamp);
+		const reviveMin = new Date(dt.getTime() + mon.minutes[0] * 60000);
+		const reviveMax = new Date(dt.getTime() + mon.minutes[1] * 60000);
+	
+		const msLeftMin = reviveMin - Date.now();
+		const msLeftMax = reviveMax - Date.now();
+	
+		const cdMinElem = document.getElementById(`cd-min-${i}`);
+		const cdMaxElem = document.getElementById(`cd-max-${i}`);
+	
+		if (cdMinElem) {
+		if (msLeftMin <= 0) {
+			cdMinElem.textContent = "已復活";
+		} else {
+			const min = Math.floor(msLeftMin / 60000);
+			const sec = Math.floor((msLeftMin % 60000) / 1000);
+			cdMinElem.textContent = `${min}分${sec}秒`;
+		}
+		}
+	
+		if (cdMaxElem) {
+		if (msLeftMax <= 0) {
+			cdMaxElem.textContent = "已復活";
+		} else {
+			const min = Math.floor(msLeftMax / 60000);
+			const sec = Math.floor((msLeftMax % 60000) / 1000);
+			cdMaxElem.textContent = `${min}分${sec}秒`;
+		}
+		}
+	});
+
+  setTimeout(updateCountdowns, 1000); // 每秒自動刷新
+}
+
 
     function exportJSON() {
       const blob = new Blob([JSON.stringify(logs, null, 2)], { type: "application/json" });
